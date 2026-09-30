@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SITE_NAME as BRAND_NAME, SITE_ORIGIN } from '@wardrobe/config';
 import { locales, defaultLocale, type Locale } from '@/i18n/config';
 
 // Saytning yagona (canonical) manzili. .env dagi NEXT_PUBLIC_SITE_URL
@@ -6,9 +7,9 @@ import { locales, defaultLocale, type Locale } from '@/i18n/config';
 // ishlatadi, shuning uchun bu yerda ham aynan o'sha manba o'qiladi va
 // domen ikki joyda ikki xil bo'lib qolmaydi. Oxiridagi "/" olib
 // tashlanadi, aks holda manzillar "//uz" ko'rinishida yig'ilib qolardi.
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wardrobestore.uz').replace(/\/+$/, '');
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? SITE_ORIGIN).replace(/\/+$/, '');
 
-export const SITE_NAME = 'Wardrobe Store';
+export const SITE_NAME = BRAND_NAME;
 
 // ── Brend so'rovlari uchun ──────────────────────────────────────────
 // "wardrobestore", "wardrobe uzbekistan" kabi so'rovlarda sayt chiqishi

@@ -1,0 +1,17 @@
+# Monorepo deployment preparation
+
+No production deployment or Docker startup is authorized by this document. Existing application Compose files and production paths remain intact. Their app-only bind mounts and `npm install` cannot resolve `workspace:*`; the old backend startup also automatically migrates. Do not use them for the new shared architecture.
+
+The new `deploy/Dockerfile.{web,server}` templates build from the repository root with pnpm 10.33.4, selected application dependencies and shared packages. They disable install lifecycle scripts and explicitly generate Prisma during the server build. The server entry remains `apps/server/dist/src/main.js`; server working directory preserves `uploads/` semantics. Containers start without migration commands. The first version retains build dependencies to avoid unsafe pruning of workspace links; image slimming is a later measured change.
+
+`deploy/compose.monorepo.yml` requires protected server env and reviewed absolute database/uploads directories. It is a template, not evidence of valid production mounts. SQLite file paths, ownership (runtime UID 1000), network aliases, reverse proxy paths and backups must be verified before adoption. Existing `/var/www/wardrobe-docker/backend` and `/frontend` references came from old documentation; actual SSH inventory is still required.
+
+Before any production change: inventory deployed code/branch/processes, database provider/path, uploads, bot polling consumers, env files and mounts; create a consistent SQLite backup using the SQLite backup API or controlled downtime (include WAL/SHM when present), uploads archive and permission inventory, then test restoration in isolation. Do not rename/move the live data directories while replacing application code. Never run `docker compose down -v` or delete a volume.
+
+Review public build variables independently from server secrets. `GRAPHQL_INTERNAL_URL` in Next rewrites is serialized during build; confirm the generated rewrite destination matches the deployment network. The review template supplies `http://server:4000/graphql` as a build argument matching its Compose service name. Changing only the runtime variable will not rebuild rewrites. Use an approved destination and an isolated staging backend if prerendering requires data; no template Docker build was run locally. Secret payment/SMS/Telegram/JWT/database values are runtime server inputs only.
+
+Stage new images against disposable data and integrations disabled. Run builds/types/contracts and customer smoke tests. Review migration SQL separately; approve and back up before any production migration. Use one polling process per Telegram token and a controlled old-process stop/new-process start. Verify manual receipt/admin confirmation, inventory, uploads and API compatibility before moving traffic.
+
+Rollback: retain prior source/image/config and persistent-path mapping. Switch traffic/processes back to the previous image with unchanged data paths. Restore a database only if schema compatibility requires it and only with a reviewed recovery point and acknowledged loss of subsequent writes. Avoid automatic schema rollback or data deletion. No deployment/push/DNS/Nginx/store action is performed by the local migration.
+
+CI prepares validation only; mobile EAS builds and store release remain separate from web/server deployment. Pin approved image/action digests for production after staging validation and vulnerability review.

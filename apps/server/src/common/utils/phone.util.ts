@@ -7,7 +7,7 @@
 // number (+998 followed by exactly 9 digits). It intentionally cannot and
 // does not prove the number is real or actually reachable — that's what the
 // SMS OTP step is for.
-export const UZ_PHONE_REGEX = /^\+998\d{9}$/;
+export { UZ_PHONE_REGEX } from '@wardrobe/validation';
 
 // Strips everything except digits and a leading "+", so "+998 (90) 123-45-67"
 // and "+998901234567" both normalize to the same stored/looked-up value.

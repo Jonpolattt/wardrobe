@@ -2,6 +2,12 @@
 packages:
   - apps/*
   - packages/*
+
+# Keep generated package-manager state inside this dedicated repository.
+storeDir: .pnpm-store
+cacheDir: .local/pnpm-cache
+stateDir: .local/pnpm-state
+engineStrict: true
 overrides:
   express@4.22.1>body-parser: 1.20.4
   apollo-server-express@3.13.0>body-parser: 1.20.4

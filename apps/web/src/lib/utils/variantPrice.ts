@@ -24,28 +24,13 @@
 // u yerda ham AYNAN shu qoida takrorlangan) — brauzerdan kelgan narxga
 // hech qachon ishonilmaydi.
 
-export interface PricedVariant {
-  size: string;
-  color: string;
-  price?: number | null;
-}
+import { parseMl } from '@wardrobe/utils';
+import type { PricedProduct, PricedVariant } from '@wardrobe/types';
 
-export interface PricedProduct {
-  price: number;
-  // Duxi hajmlari ro'yxati. Bo'lmasa variantlarning o'lchamlaridan
-  // olinadi — shuning uchun ixtiyoriy.
-  sizes?: string[] | null;
-  variants?: PricedVariant[] | null;
-}
+export type { PricedProduct, PricedVariant } from '@wardrobe/types';
 
 // "50ml" → 50. Hajm emas (masalan "XL", "42") bo'lsa null.
-export function parseMl(size: string | null | undefined): number | null {
-  if (!size) return null;
-  const match = /^(\d+)\s*ml$/i.exec(String(size).trim());
-  if (!match) return null;
-  const ml = Number(match[1]);
-  return Number.isFinite(ml) && ml > 0 ? ml : null;
-}
+export { parseMl } from '@wardrobe/utils';
 
 // Mahsulotning "Narx" maydoni qaysi hajmga tegishli ekani — ENG KICHIK
 // hajm. Duxi bo'lmasa (hajm umuman yo'q) null.

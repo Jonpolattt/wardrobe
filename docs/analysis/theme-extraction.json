@@ -1,0 +1,33 @@
+{
+  "package": "@wardrobe/theme",
+  "colorsPreserved": {
+    "ink.950": "#07111C",
+    "ink.900": "#111827",
+    "ink.800": "#0D1826",
+    "ink.700": "#101C2A",
+    "cream": "#F8FAFC",
+    "gold.400": "#61C4FF",
+    "gold.500": "#465FFF",
+    "gold.600": "#354DE6",
+    "emerald.300": "#7CE7BA",
+    "emerald.400": "#56DBA2",
+    "emerald.500": "#147B4A",
+    "emerald.600": "#147B4A",
+    "emerald.700": "#0F5F39",
+    "amber.300": "#FFC583",
+    "amber.400": "#FFAE56",
+    "amber.500": "#A64B00",
+    "amber.600": "#A64B00",
+    "amber.700": "#8A3E00",
+    "red.300": "#FFB0B6",
+    "red.400": "#FF8C94",
+    "red.500": "#BD243B",
+    "red.600": "#BD243B",
+    "red.700": "#9C1B2F"
+  },
+  "count": 23,
+  "beforeSha256": "97066700bf4cfceeb8e0a248f1dfe1e9d274daada77540fb0c38b011f7287128",
+  "afterSha256": "d4cb08251f559726f8525b9c14d33a6109b3d5bf4a421007cb0ddfe99a20d7c2",
+  "applicationManifestsModified": false,
+  "dependenciesInstalled": false
+}

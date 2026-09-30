@@ -32,6 +32,10 @@ export class Product {
   @Field(() => Float)
   price: number;
 
+  // Optional size/color arguments are defined by the computed resolver.
+  @Field(() => Float)
+  unitPrice: number;
+
   @Field(() => Float, { nullable: true })
   oldPrice?: number;
 

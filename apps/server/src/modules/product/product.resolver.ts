@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent, Float } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { Product } from './models/product.model';
 import { PaginatedProducts } from './models/paginated-products.model';
@@ -10,10 +10,21 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { resolveUnitPrice } from '../../common/utils/variant-price.util';
 
 @Resolver(() => Product)
 export class ProductResolver {
   constructor(private readonly productService: ProductService) {}
+
+  @Public()
+  @ResolveField(() => Float)
+  unitPrice(
+    @Parent() product: Product,
+    @Args('size', { type: () => String, nullable: true }) size?: string,
+    @Args('color', { type: () => String, nullable: true }) color?: string,
+  ): number {
+    return resolveUnitPrice(product, size, color);
+  }
 
   // Do'kon filtri uchun — faqat tovarlarda haqiqatda ishlatilgan
   // ranglar (izohni product.service.ts, usedColors() da ko'ring).

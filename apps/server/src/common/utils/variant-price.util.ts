@@ -13,24 +13,17 @@
 // haqiqiy summa baribir shu yerda, bazadagi qiymatlardan hisoblanadi —
 // brauzerdan kelgan narxga hech qachon ishonilmaydi.
 
-export interface PricedVariantLike {
-  size: string;
-  color: string;
-  price?: number | null;
-}
+import { parseMl } from '@wardrobe/utils';
+import type { PriceValue, PricedVariant } from '@wardrobe/types';
+
+export type PricedVariantLike = PricedVariant;
 
 export interface PricedProductLike {
-  price: number | { toString(): string };
+  price: PriceValue;
   variants?: PricedVariantLike[] | null;
 }
 
-export function parseMl(size: string | null | undefined): number | null {
-  if (!size) return null;
-  const match = /^(\d+)\s*ml$/i.exec(String(size).trim());
-  if (!match) return null;
-  const ml = Number(match[1]);
-  return Number.isFinite(ml) && ml > 0 ? ml : null;
-}
+export { parseMl } from '@wardrobe/utils';
 
 export function baseVolumeMl(product: PricedProductLike | null | undefined): number | null {
   const volumes = (product?.variants ?? [])

@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import { webColors } from '@wardrobe/theme';
 
 const config: Config = {
   darkMode: 'class',
@@ -22,20 +23,20 @@ const config: Config = {
           // Qorong'i rejimdagi SAHIFA/bo'lim foni (`dark:bg-ink-950`) va
           // yorug' rejimdagi sarlavha matni (`text-ink-950`). Bitta token
           // ikki rolda, lekin ular hech qachon bir vaqtda uchramaydi.
-          950: '#07111C',
+          950: webColors.ink[950],
           // Yorug' rejimdagi asosiy matn; shuningdek `border-ink-900/10`,
           // `bg-ink-900/5` kabi nozik chegara va yuzalar shu rangning
           // shaffof ulushlaridan hosil bo'ladi.
-          900: '#111827',
+          900: webColors.ink[900],
           // Qorong'i rejimdagi KARTOCHKA/panel yuzasi (`.card-surface`
           // dark holati).
-          800: '#0D1826',
+          800: webColors.ink[800],
           // Qorong'i rejimdagi input va qo'shimcha yuzalar.
-          700: '#101C2A',
+          700: webColors.ink[700],
         },
         // Yorug' rejimdagi sahifa foni VA qorong'i rejimdagi asosiy matn —
         // #F8FAFC ikkala rolga ham mos (deyarli oq, lekin sof oq emas).
-        cream: '#F8FAFC',
+        cream: webColors.cream,
         // Saytning yagona aksent rangi. Avval yashil edi; endi ko'k
         // tizimi. Nom ("gold") tarixiy — o'zgartirilsa yuzlab faylga
         // tegishga to'g'ri kelardi, shuning uchun faqat qiymati yangilandi.
@@ -43,9 +44,9 @@ const config: Config = {
         //   500 — asosiy (primary): tugma, badge, faol nuqta
         //   400 — qorong'i rejimdagi aksent matn/narx (to'q fonda yorqin)
         gold: {
-          400: '#61C4FF',
-          500: '#465FFF',
-          600: '#354DE6',
+          400: webColors.gold[400],
+          500: webColors.gold[500],
+          600: webColors.gold[600],
         },
         // ── Holat ranglari ─────────────────────────────────────────────
         // Tailwind'ning tayyor `emerald`/`amber`/`red` shkalalari saytda
@@ -57,25 +58,25 @@ const config: Config = {
         //   *-600/700 → yorug' rejim uchun (to'qroq, oq fonda o'qiladi)
         //   *-400/300 → qorong'i rejim uchun (ochroq, to'q fonda o'qiladi)
         emerald: {
-          300: '#7CE7BA',
-          400: '#56DBA2',
-          500: '#147B4A',
-          600: '#147B4A',
-          700: '#0F5F39',
+          300: webColors.emerald[300],
+          400: webColors.emerald[400],
+          500: webColors.emerald[500],
+          600: webColors.emerald[600],
+          700: webColors.emerald[700],
         },
         amber: {
-          300: '#FFC583',
-          400: '#FFAE56',
-          500: '#A64B00',
-          600: '#A64B00',
-          700: '#8A3E00',
+          300: webColors.amber[300],
+          400: webColors.amber[400],
+          500: webColors.amber[500],
+          600: webColors.amber[600],
+          700: webColors.amber[700],
         },
         red: {
-          300: '#FFB0B6',
-          400: '#FF8C94',
-          500: '#BD243B',
-          600: '#BD243B',
-          700: '#9C1B2F',
+          300: webColors.red[300],
+          400: webColors.red[400],
+          500: webColors.red[500],
+          600: webColors.red[600],
+          700: webColors.red[700],
         },
       },
       fontFamily: {

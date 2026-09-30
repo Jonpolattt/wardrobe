@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
+import { ObjectType, Field, ID, Int, Float } from '@nestjs/graphql';
 import { Product } from '../../product/models/product.model';
 
 @ObjectType()
@@ -17,6 +17,10 @@ export class CartItem {
 
   @Field({ nullable: true })
   color?: string;
+
+  // Server-computed display price; checkout still recomputes the final total.
+  @Field(() => Float)
+  unitPrice: number;
 
   @Field(() => Int)
   quantity: number;

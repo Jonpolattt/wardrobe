@@ -1,24 +1,11 @@
 import { registerEnumType } from '@nestjs/graphql';
+import { OrderStatus, PaymentMethod, PaymentStatus } from '@wardrobe/types';
 
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  SHIPPED = 'SHIPPED',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
-}
+export { OrderStatus } from '@wardrobe/types';
 registerEnumType(OrderStatus, { name: 'OrderStatus' });
 
-export enum PaymentMethod {
-  CLICK = 'CLICK',
-  PAYME = 'PAYME',
-  CASH = 'CASH',
-}
+export { PaymentMethod } from '@wardrobe/types';
 registerEnumType(PaymentMethod, { name: 'PaymentMethod' });
 
-export enum PaymentStatus {
-  PENDING = 'PENDING',
-  PAID = 'PAID',
-  FAILED = 'FAILED',
-}
+export { PaymentStatus } from '@wardrobe/types';
 registerEnumType(PaymentStatus, { name: 'PaymentStatus' });

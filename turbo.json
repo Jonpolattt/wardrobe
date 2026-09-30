@@ -15,13 +15,21 @@
         "NEXT_PUBLIC_GRAPHQL_URL",
         "NEXT_PUBLIC_SITE_URL",
         "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME",
-        "GRAPHQL_INTERNAL_URL"
+        "GRAPHQL_INTERNAL_URL",
+        "EXPO_PUBLIC_API_URL",
+        "WARDROBE_APP_VARIANT",
+        "WARDROBE_ANDROID_PACKAGE",
+        "WARDROBE_IOS_BUNDLE_IDENTIFIER",
+        "WARDROBE_APP_SCHEME",
+        "WARDROBE_EAS_PROJECT_ID"
       ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
+    "typecheck": { "dependsOn": ["^build"], "outputs": [] },
+    "test": { "dependsOn": ["build"], "outputs": [], "cache": false },
     "start:dev": {
       "cache": false,
       "persistent": true

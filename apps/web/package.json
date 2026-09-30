@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@apollo/client": "^3.11.8",
@@ -21,7 +22,11 @@
     "react-hook-form": "^7.53.0",
     "recharts": "^2.12.7",
     "sharp": "^0.33.5",
-    "zustand": "^4.5.5"
+    "zustand": "^4.5.5",
+    "@wardrobe/types": "workspace:*",
+    "@wardrobe/utils": "workspace:*",
+    "@wardrobe/theme": "workspace:*",
+    "@wardrobe/config": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.14.15",

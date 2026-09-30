@@ -1,16 +1,23 @@
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent, Float } from '@nestjs/graphql';
+import { UseGuards, NotFoundException } from '@nestjs/common';
 import { CartItem } from './models/cart-item.model';
 import { CartService } from './cart.service';
 import { AddToCartInput, UpdateCartItemInput } from './dto/cart.input';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { User } from '../user/models/user.model';
+import { resolveUnitPrice } from '../../common/utils/variant-price.util';
 
 @Resolver(() => CartItem)
 @UseGuards(GqlAuthGuard)
 export class CartResolver {
   constructor(private readonly cartService: CartService) {}
+
+  @ResolveField(() => Float)
+  unitPrice(@Parent() item: CartItem): number {
+    if (!item.product) throw new NotFoundException('Cart product not found');
+    return resolveUnitPrice(item.product, item.size, item.color);
+  }
 
   @Query(() => [CartItem])
   myCart(@CurrentUser() user: User) {
