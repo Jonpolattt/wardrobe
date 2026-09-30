@@ -8,7 +8,7 @@ Copy `apps/mobile/.env.example` to a local, ignored environment file only when a
 
 | Variable | Purpose |
 | --- | --- |
-| `EXPO_PUBLIC_API_URL` | Public GraphQL endpoint; no implicit production fallback |
+| `EXPO_PUBLIC_GRAPHQL_URL` | Public GraphQL endpoint; no implicit production fallback. `EXPO_PUBLIC_API_URL` remains a legacy fallback. |
 | `EXPO_PUBLIC_TELEGRAM_BOT_USERNAME` | Optional public payment/support bot username for existing receipt handoff |
 | `WARDROBE_APP_VARIANT` | `development`, `preview`, or `production` build identity |
 | `WARDROBE_ANDROID_PACKAGE` | Reviewed Android application identifier override |

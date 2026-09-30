@@ -2,11 +2,15 @@ import { ApiClientError, createGraphQLClient, CUSTOMER_DOCUMENTS as D, type Grap
 import { apiEndpoint, assetUrl } from '@wardrobe/config';
 import type { AuthSession, UserProfile, Product, ProductFilter, ProductPage, Category, Brand, Gender, Banner, SiteSettings, CartItem, WishlistItem, Order, CreateOrderInput, PromoPreview, Review } from '@wardrobe/types';
 import { tokenStorage } from './secure-session';
+import { CATALOG_DOCUMENTS, catalogDisplayPrice } from '../features/catalog/api-contract';
+import { COMMERCE_DOCUMENTS, cartDisplayItem, type CartResponseItem } from '../features/commerce/api-contract';
+import { operationName, publicEndpoint, publicVariables, recordApiTrace, tracedFetch } from './api-diagnostics';
 export type AuthPayload = AuthSession & { user: UserProfile };
 export type RegisterInput = { phone: string; firstName: string; lastName: string; password: string; email?: string; address?: string };
 export type ResetInput = { token?: string; identifier?: string; code?: string; newPassword: string };
 export type ProfileInput = { firstName?: string; lastName?: string; address?: string };
-export const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL;
+export const configuredApiUrl = process.env.EXPO_PUBLIC_GRAPHQL_URL || process.env.EXPO_PUBLIC_API_URL;
+recordApiTrace({ stage: 'configured', endpoint: publicEndpoint(configuredApiUrl), version: 'catalog-v2' });
 export const imageUrl = (value: string | null | undefined) => assetUrl(value, configuredApiUrl);
 let transport: GraphQLClient | undefined;
 function client(): GraphQLClient {
@@ -14,29 +18,37 @@ function client(): GraphQLClient {
     let endpoint: string;
     try { endpoint = apiEndpoint(configuredApiUrl, !__DEV__); }
     catch { throw new ApiClientError('INVALID_ENDPOINT'); }
-    transport = createGraphQLClient({ endpoint, storage: tokenStorage, timeoutMs: 15_000 });
+    transport = createGraphQLClient({ endpoint, storage: tokenStorage, timeoutMs: 15_000, fetch: __DEV__ ? tracedFetch : undefined });
   }
   return transport;
 }
 async function request<T>(query: string, variables?: object, options?: GraphQLRequestOptions): Promise<T> {
-  return client().request<T, object>(query, variables, options);
+  const operation = operationName(query);
+  recordApiTrace({ stage: 'requested', endpoint: publicEndpoint(configuredApiUrl), operation, variables: publicVariables(operation, variables as Record<string, unknown> | undefined) });
+  try { return await client().request<T, object>(query, variables, options); }
+  catch (error) {
+    recordApiTrace({ stage: 'error', operation, kind: error instanceof ApiClientError ? error.kind : 'UNEXPECTED', httpStatus: error instanceof ApiClientError ? error.status : undefined });
+    throw error;
+  }
 }
 const publicOptions = (signal?: AbortSignal): GraphQLRequestOptions => ({ auth: false, signal });
 const guarded = { retryOnUnauthenticated: true };
 export const mobileApi = {
-  async products(filter: ProductFilter, signal?: AbortSignal) { return (await request<{products: ProductPage}>(D.products, { filter }, publicOptions(signal))).products; },
-  async product(slug: string, signal?: AbortSignal) { return (await request<{product: Product}>(D.product, { slug }, publicOptions(signal))).product; },
+  async products(filter: ProductFilter, signal?: AbortSignal) { return (await request<{products: ProductPage}>(CATALOG_DOCUMENTS.products, { filter }, publicOptions(signal))).products; },
+  async product(slug: string, signal?: AbortSignal) { return (await request<{product: Product}>(CATALOG_DOCUMENTS.product, { slug }, publicOptions(signal))).product; },
   async quote(productId: string, size?: string, color?: string, signal?: AbortSignal): Promise<number> {
-    const result = await request<{products: {list: {unitPrice: number}[]}}>(D.quote, { filter: { ids: [productId], page: 1, limit: 1 }, size, color }, publicOptions(signal));
-    const price = result.products.list[0]?.unitPrice;
-    if (price === undefined) throw new ApiClientError('GRAPHQL');
+    const result = await request<{products: {list: Pick<Product, 'price' | 'variants'>[]}}>(CATALOG_DOCUMENTS.quote, { filter: { ids: [productId], page: 1, limit: 1 } }, publicOptions(signal));
+    const product = result.products.list[0];
+    if (!product) throw new ApiClientError('GRAPHQL');
+    const price = catalogDisplayPrice(product, size, color);
+    if (!Number.isFinite(price) || price < 0) throw new ApiClientError('INVALID_RESPONSE');
     return price;
   },
   async categories(signal?: AbortSignal) { return (await request<{categories: Category[]}>(D.categories, undefined, publicOptions(signal))).categories; },
   async filters(signal?: AbortSignal) { return request<{categories: Category[]; brands: Brand[]; genders: Gender[]; productColors: string[]}>(D.filters, undefined, publicOptions(signal)); },
   async banners(signal?: AbortSignal) { return (await request<{banners: Banner[]}>(D.banners, undefined, publicOptions(signal))).banners; },
   async siteSettings(signal?: AbortSignal) { return (await request<{siteSettings: SiteSettings}>(D.settings, undefined, publicOptions(signal))).siteSettings; },
-  async bestSellers(signal?: AbortSignal) { return (await request<{bestSellers: Product[]}>(D.bestSellers, undefined, publicOptions(signal))).bestSellers; },
+  async bestSellers(signal?: AbortSignal) { return (await request<{bestSellers: Product[]}>(CATALOG_DOCUMENTS.bestSellers, undefined, publicOptions(signal))).bestSellers; },
   async me(signal?: AbortSignal) { return (await request<{me: UserProfile}>(D.me, undefined, { signal })).me; },
   async login(input: {identifier: string; password: string}) { return (await request<{login: AuthPayload}>(D.login, { input }, publicOptions())).login; },
   async register(input: RegisterInput) { return (await request<{register: AuthPayload}>(D.register, { input }, publicOptions())).register; },
@@ -45,11 +57,11 @@ export const mobileApi = {
   async requestReset(identifier: string) { return (await request<{requestPasswordReset: {method: 'PHONE'|'EMAIL'}}>(D.requestReset, { input: {identifier} }, publicOptions())).requestPasswordReset; },
   async resetPassword(input: ResetInput) { return (await request<{resetPassword: AuthPayload}>(D.resetPassword, { input }, publicOptions())).resetPassword; },
   async updateProfile(input: ProfileInput) { return (await request<{updateProfile: UserProfile}>(D.updateProfile, { input }, guarded)).updateProfile; },
-  async cart(signal?: AbortSignal) { return (await request<{myCart: CartItem[]}>(D.cart, undefined, { signal })).myCart; },
-  async addCart(input: {productId: string; size?: string; color?: string; quantity: number}) { return (await request<{addToCart: Omit<CartItem,'product'>}>(D.addCart, { input }, guarded)).addToCart; },
-  async updateCart(input: {id: string; quantity: number}) { return (await request<{updateCartItem: {id: string; quantity: number; unitPrice: number}}>(D.updateCart, { input }, guarded)).updateCartItem; },
+  async cart(signal?: AbortSignal) { return (await request<{myCart: CartResponseItem[]}>(COMMERCE_DOCUMENTS.cart, undefined, { signal })).myCart.map(cartDisplayItem); },
+  async addCart(input: {productId: string; size?: string; color?: string; quantity: number}) { return (await request<{addToCart: Omit<CartItem,'product'|'unitPrice'>}>(COMMERCE_DOCUMENTS.addCart, { input }, guarded)).addToCart; },
+  async updateCart(input: {id: string; quantity: number}) { return (await request<{updateCartItem: {id: string; quantity: number}}>(COMMERCE_DOCUMENTS.updateCart, { input }, guarded)).updateCartItem; },
   async removeCart(id: string) { return (await request<{removeCartItem: boolean}>(D.removeCart, { id }, guarded)).removeCartItem; },
-  async wishlist(signal?: AbortSignal) { return (await request<{myWishlist: WishlistItem[]}>(D.wishlist, undefined, { signal })).myWishlist; },
+  async wishlist(signal?: AbortSignal) { return (await request<{myWishlist: WishlistItem[]}>(COMMERCE_DOCUMENTS.wishlist, undefined, { signal })).myWishlist; },
   async toggleWishlist(productId: string) { return (await request<{toggleWishlist: {added: boolean}}>(D.toggleWishlist, { productId }, guarded)).toggleWishlist; },
   async removeWishlist(id: string) { return (await request<{removeWishlistItem: boolean}>(D.removeWishlist, { id }, guarded)).removeWishlistItem; },
   async createOrder(input: CreateOrderInput) { return (await request<{createOrder: Order}>(D.createOrder, { input }, guarded)).createOrder; },

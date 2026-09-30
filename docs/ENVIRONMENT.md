@@ -8,7 +8,7 @@ Root configuration holds pnpm/Turbo/build controls only. Keep real runtime env f
 | Web public | NEXT_PUBLIC_GRAPHQL_URL, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_TELEGRAM_BOT_USERNAME | Public build inputs; browser bundles may disclose them |
 | Web legacy public | NEXT_PUBLIC_API_URL, NEXT_PUBLIC_WS_PRESENCE_URL | Examples retained; current images and presence use same-origin routes rather than these stale origins |
 | Next server/build | GRAPHQL_INTERNAL_URL | Private network destination only; Next rewrite destination is set during build; never put credentials into the URL |
-| Mobile public | EXPO_PUBLIC_API_URL, EXPO_PUBLIC_TELEGRAM_BOT_USERNAME | Embedded in native bundles; API URL must be HTTPS for release and explicitly configured |
+| Mobile public | EXPO_PUBLIC_GRAPHQL_URL, EXPO_PUBLIC_TELEGRAM_BOT_USERNAME | Embedded in native bundles; GraphQL URL must be HTTPS for release and explicitly configured. EXPO_PUBLIC_API_URL remains a legacy fallback. |
 | Mobile native build identity | WARDROBE_APP_VARIANT, WARDROBE_ANDROID_PACKAGE, WARDROBE_IOS_BUNDLE_IDENTIFIER, WARDROBE_APP_SCHEME, WARDROBE_EAS_PROJECT_ID | Nonsecret identifiers; provisional until ownership is confirmed |
 | Server database/runtime | DATABASE_URL, PORT, CORS_ORIGIN, NODE_ENV | Server only; persistent database path reviewed independently of code relocation |
 | Server authentication | JWT_ACCESS_SECRET, JWT_ACCESS_EXPIRES_IN, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN | Secrets and token lifetimes stay server-side |

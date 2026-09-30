@@ -10,6 +10,7 @@ import { localizedName } from '../../features/catalog/model';
 import { Screen, Title, Body, Button, Field, StateView } from '../../components/ui';
 import { Choice } from '../../components/Choice';
 import { ProductCard } from '../../components/ProductCard';
+import { ApiDiagnostics } from '../../components/ApiDiagnostics';
 
 const SORTS: { value: ProductSortValue; key: string }[] = [
   { value: 'NEWEST', key: 'newest' },
@@ -108,6 +109,7 @@ export default function ShopScreen() {
         />
       </View>
 
+      {__DEV__ && <ApiDiagnostics />}
       <FlatList
         data={products}
         keyExtractor={(item) => item.id}
