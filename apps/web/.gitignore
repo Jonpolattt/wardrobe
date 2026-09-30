@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.env.local
+*.log
+.DS_Store
+
+# Server deploy (docker-compose.yml frontend konteynerga shundan o'qiydi) —
+# hozircha ichida sir yo'q (faqat NEXT_PUBLIC_* va ichki URL'lar), lekin
+# ehtiyot shart bo'lsin deb umuman git'ga tushmasin.
+.env.production
+.env

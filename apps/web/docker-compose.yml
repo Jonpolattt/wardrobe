@@ -1,0 +1,44 @@
+# Wardrobe.uz — frontend'ni Docker orqali serverga chiqarish.
+#
+# Backend'dagi docker-compose.yml bilan bir xil uslub: alohida Dockerfile
+# yo'q, tayyor Node image + bind mount + konteyner ichida
+# install/build/start.
+#
+# MUHIM: bu faylning o'zida sir yo'q. Haqiqiy qiymatlar (agar kerak
+# bo'lsa) serverdagi ".env.production" faylida turadi.
+services:
+  frontend:
+    image: node:20.18.1-bookworm
+    container_name: wardrobe-frontend
+    restart: unless-stopped
+    working_dir: /app
+    env_file:
+      - .env.production
+    ports:
+      # Eski loyihangizning frontend'i 4000-portda ishlab turibdi — u bilan
+      # to'qnashmasligi uchun bu yerda 5100 tanlandi. Band bo'lib qolsa,
+      # .env.production'ga FRONTEND_PORT="boshqa_port" qo'shing.
+      - '${FRONTEND_PORT:-5100}:3000'
+    volumes:
+      - ./:/app
+      - frontend_node_modules:/app/node_modules
+      # Build cache'ni saqlab qolish — har bir qayta ishga tushirishda
+      # "next build"ni noldan boshlamaydi, tezroq ko'tariladi.
+      - frontend_next_cache:/app/.next
+    command: >
+      bash -c "npm install &&
+               npm run build &&
+               npm run start -- -p 3000 -H 0.0.0.0"
+    networks:
+      - wardrobe-net
+
+volumes:
+  frontend_node_modules:
+  frontend_next_cache:
+
+networks:
+  # Backend'ning docker-compose.yml'idagi izohga qarang — bu ikkala
+  # loyiha BITTA umumiy tarmoqni ishlatadi, shuning uchun "external: true".
+  wardrobe-net:
+    name: wardrobe-net
+    external: true

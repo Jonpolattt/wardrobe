@@ -1,0 +1,636 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Using SQLite for local development: zero setup, no account/signup, no
+// server to install — the database is just a file (prisma/dev.db) created
+// automatically by `prisma migrate dev`. To move to PostgreSQL later
+// (e.g. for production): change provider to "postgresql", set DATABASE_URL
+// to a real connection string, and re-run `prisma migrate dev`. At that
+// point you can also switch the "string" workaround fields below
+// (roles/statuses, sizes/colors/images, rawPayload) back to native
+// `enum` and `Json`/`String[]` types, since Postgres supports both —
+// SQLite's Prisma connector does not support either, which is why this
+// schema uses plain strings everywhere instead.
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────
+// Models
+//
+// Role / OrderStatus / PaymentMethod / PaymentStatus are NOT Prisma enums
+// here (SQLite's connector doesn't support `enum`) — they're plain String
+// columns. The actual enum types (with validation) live in
+// src/common/enums/*.enum.ts and are what GraphQL and class-validator use;
+// Prisma just stores whatever string value those enums produce.
+// ──────────────────────────────
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  phone        String?   @unique
+  passwordHash String
+  firstName    String
+  lastName     String?
+  avatar       String?
+  address      String?
+  role         String    @default("USER")
+  isActive     Boolean   @default(true)
+  lastSeenAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Phone verification — legacy path only now. Registration itself verifies
+  // the phone (via PhoneOtp below) *before* the account row is even
+  // created, so new accounts are always created with phoneVerified: true.
+  // These three fields, and verifyEmail/resendVerificationCode in
+  // auth.service.ts, are kept only so any pre-existing account created
+  // under the old "create-first-then-verify" flow can still finish
+  // verifying — nothing new writes to them.
+  phoneVerified             Boolean   @default(false)
+  verificationCode          String?
+  verificationCodeExpiresAt DateTime?
+
+  // Email verification — tracked per the data model spec, but there's no
+  // OTP/verification flow for it (registration deliberately never emails a
+  // code — see PhoneOtp/auth.service.ts). Reserved for a future flow.
+  emailVerified Boolean @default(false)
+
+  // Forgot-password / SMS OTP flow — separate fields from the registration
+  // code above so an in-flight password reset can never interfere with (or
+  // be confused with) phone verification state.
+  resetCode          String?
+  resetCodeExpiresAt DateTime?
+
+  // Forgot-password / email-link flow — a single-use opaque token embedded
+  // in the emailed reset URL (?token=...), distinct from resetCode above
+  // (which is a 6-digit code entered by hand on the SMS path). Whichever of
+  // the two the requester's identifier resolves to is the only one ever
+  // set for a given reset request.
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
+
+  orders        Order[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+  reviews       Review[]
+
+  @@map("users")
+}
+
+// Holds an SMS OTP for a phone number that is *mid-registration* and has no
+// User row yet (email/password/name aren't collected until after the phone
+// step succeeds, and User.email is a required unique column, so a
+// placeholder User can't be created early the way the old flow did).
+// One row per phone — a fresh send overwrites the previous code/attempts
+// rather than accumulating rows. Cleaned up once register() succeeds; a
+// stale unverified row is otherwise harmless and just gets overwritten by
+// the next send for that number.
+model PhoneOtp {
+  id         String    @id @default(uuid())
+  phone      String    @unique
+  code       String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+  lastSentAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("phone_otps")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  nameRu      String?
+  slug        String   @unique
+  description String?
+  image       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+  banners  Banner[]
+  // Promokod faqat shu kategoriyaga amal qilishi uchun (PromoCode.scope =
+  // "CATEGORIES") — oraliq jadval orqali.
+  promoLinks PromoCodeCategory[]
+
+  @@map("categories")
+}
+
+// Bosh sahifadagi reklama bannerlari — admin panelning "Reklamalar"
+// bo'limidan qo'shiladi, hech qanday qattiq yozilgan (hardcode) rasm yo'q.
+//
+// Har bir banner ixtiyoriy ravishda BITTA mahsulotga YOKI BITTA
+// kategoriyaga bog'lanadi: xaridor bannerni bosganda o'sha sahifaga
+// o'tadi. Hech qaysisi tanlanmasa (linkType = "NONE") banner shunchaki
+// rasm bo'lib turadi va bosilmaydi.
+//
+// linkType — "NONE" | "PRODUCT" | "CATEGORY". SQLite'da Prisma `enum`ni
+// qo'llab-quvvatlamaydi (yuqoridagi izohga qarang), shuning uchun oddiy
+// matn ustun; haqiqiy tekshiruv GraphQL DTO'sida (class-validator) va
+// servisda amalga oshiriladi.
+//
+// Bog'langan mahsulot/kategoriya o'chirilsa — banner o'chib ketmaydi,
+// faqat havolasi uziladi (onDelete: SetNull) va servis uni bosilmaydigan
+// holatga tushiradi. Aks holda bitta tovarni o'chirish reklamani ham
+// birga olib ketardi.
+model Banner {
+  id        String   @id @default(uuid())
+  // Yuklangan rasm manzili (/uploads/... — mahsulot rasmlari bilan bir xil
+  // REST endpoint orqali yuklanadi).
+  image     String
+  // Rasm ustida ko'rinadigan ixtiyoriy matn. Bo'sh qoldirilsa faqat rasm
+  // ko'rsatiladi.
+  title     String?
+  titleRu   String?
+  linkType  String   @default("NONE")
+  isActive  Boolean  @default(true)
+  // Kichik raqam — oldinroq. Teng bo'lsa yangisi oldinda.
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // linkType = "PRODUCTS" bo'lganda — bannerga biriktirilgan bir NECHTA
+  // tovar. Yuqoridagi bitta `productId` esa eski "PRODUCT" turi uchun
+  // qoladi (mavjud bannerlar buzilmasligi uchun).
+  products BannerProduct[]
+
+  @@index([isActive])
+  @@index([productId])
+  @@index([categoryId])
+  @@map("banners")
+}
+
+// Banner <-> Mahsulot bog'lanishi (ko'pga-ko'p). Bitta bannerga bir
+// nechta tovarni tanlash uchun: masalan bitta reklamaga krossovka,
+// ko'ylak va futbolka birga qo'shiladi.
+model BannerProduct {
+  id        String @id @default(uuid())
+  sortOrder Int    @default(0)
+
+  bannerId String
+  banner   Banner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Bir xil tovar bitta bannerga ikki marta qo'shilmasin.
+  @@unique([bannerId, productId])
+  @@index([bannerId])
+  @@index([productId])
+  @@map("banner_products")
+}
+
+// ── PROMOKODLAR ──────────────────────────────────────────────────────
+//
+// Admin panelning "Promokodlar" bo'limidan qo'shiladi. Har bir kod:
+//   • chegirma turi (foiz yoki aniq summa) va qiymati,
+//   • amal qilish muddati (boshlanish/tugash — ixtiyoriy),
+//   • qamrovi: hamma tovarga / tanlangan kategoriyalarga / tanlangan
+//     tovarlarga,
+//   • bitta telefon raqamidan FAQAT BIR MARTA ishlatilishi.
+model PromoCode {
+  id String @id @default(uuid())
+  // Har doim KATTA harfda saqlanadi — xaridor qanday yozishidan qat'i
+  // nazar topilishi uchun (service ichida `toUpperCase()` qilinadi).
+  code String @unique
+  // "PERCENT" — foiz, "AMOUNT" — aniq summa (so'm).
+  discountType String @default("PERCENT")
+  discountValue Float
+  // Foizli chegirma uchun ixtiyoriy shift: "10% lekin ko'pi bilan
+  // 50 000 so'm".
+  maxDiscount Float?
+  // Shu summadan kam buyurtmaga kod ishlamaydi (ixtiyoriy).
+  minOrderAmount Float?
+  // Ixtiyoriy muddat. Bo'sh bo'lsa — cheklanmagan.
+  startsAt DateTime?
+  endsAt   DateTime?
+  isActive Boolean @default(true)
+  // "ALL" | "CATEGORIES" | "PRODUCTS"
+  scope String @default("ALL")
+  // Nechta marta ishlatilgani (hisobot uchun; cheklov emas).
+  usedCount Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categories PromoCodeCategory[]
+  products   PromoCodeProduct[]
+  usages     PromoCodeUsage[]
+
+  @@index([isActive])
+  @@map("promo_codes")
+}
+
+model PromoCodeCategory {
+  id String @id @default(uuid())
+
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([promoCodeId, categoryId])
+  @@index([promoCodeId])
+  @@map("promo_code_categories")
+}
+
+model PromoCodeProduct {
+  id String @id @default(uuid())
+
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([promoCodeId, productId])
+  @@index([promoCodeId])
+  @@map("promo_code_products")
+}
+
+// "Bitta raqam — bitta marta" qoidasi aynan shu jadval orqali ishlaydi.
+// Telefon raqami NORMALLASHTIRILGAN ko'rinishda saqlanadi (faqat
+// raqamlar), shuning uchun "+998 99 213 28 01" va "998992132801" bitta
+// foydalanuvchi deb hisoblanadi. Bitta kod uchun bitta raqamdan faqat
+// bitta satr bo'la oladi (@@unique) — bazaning O'ZI takror ishlatishni
+// rad etadi, ya'ni ikki buyurtma bir vaqtda kelib qolsa ham ikkinchisi
+// o'tib ketmaydi.
+model PromoCodeUsage {
+  id String @id @default(uuid())
+
+  promoCodeId String
+  promo       PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+
+  phone  String
+  userId String?
+  orderId String?
+  // Shu ishlatishda berilgan chegirma summasi.
+  discount Float @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([promoCodeId, phone])
+  @@index([phone])
+  @@map("promo_code_usages")
+}
+
+model Brand {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@map("brands")
+}
+
+// "Magazin" — tashqi do'kon/yetkazib beruvchi (masalan, Ko'k Saroy bozoridagi
+// bir magazin). Har bir tovar ixtiyoriy ravishda bitta magazinga bog'lanadi —
+// bu faqat admin panelda ko'rinadi (tovar qaysi magazindan olinganini
+// kuzatish uchun), saytdagi xaridorlarga ko'rsatilmaydi.
+model Store {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  // Ombor botiga kirish uchun maxfiy kod — admin buni faqat shu
+  // magazinchiga beradi. Kod kiritilgach magazinchining Telegram akkaunti
+  // shu magazinga biriktiriladi (TelegramStoreLink) va u boshqa
+  // magazinlarni umuman ko'rmaydi.
+  accessCode String? @unique
+  // Admin shu magazinchi bilan qancha foizga ("komissiya") ishlashini
+  // belgilaydi (masalan 20 — degani tushumning 20% adminga tegadi).
+  // Magazin sahifasidagi "Mening ulushim" raqami shu foiz asosida
+  // (revenue * commissionPercent / 100) hisoblanadi — store.service.ts
+  // dagi computeStats() ga qarang.
+  commissionPercent Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products      Product[]
+  deductions    StockDeduction[]
+  telegramLinks TelegramStoreLink[]
+
+  @@map("stores")
+}
+
+// Magazinchining Telegram akkaunti <-> magazin bog'lanishi. Bitta Telegram
+// akkaunt faqat bitta magazinga ulanadi; bitta magazinga bir nechta
+// sotuvchi ulanishi mumkin. Admin panelda "sotuvchilarni uzish" bosilsa
+// shu yozuvlar o'chadi va ular qayta kod kiritishi kerak bo'ladi.
+model TelegramStoreLink {
+  id               String   @id @default(uuid())
+  telegramUserId   String   @unique
+  telegramUsername String?
+  storeId          String
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+
+  @@index([storeId])
+  @@map("telegram_store_links")
+}
+
+// Telegram bot orqali magazinchi "men bu tovardan N dona sotib yubordim"
+// deb belgilaganda yoziladigan tarix. Ombordagi qoldiq shu zahoti
+// kamaytiriladi; bu jadval esa kim, qachon, qaysi magazindan nimani
+// ayirganini keyin tekshirish uchun saqlanadi.
+model StockDeduction {
+  id        String   @id @default(uuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size      String?
+  color     String?
+  quantity  Int
+  // Botda kim bajargani (Telegram foydalanuvchi ma'lumotlari)
+  telegramUserId   String?
+  telegramUsername String?
+  createdAt DateTime @default(now())
+
+  @@index([storeId])
+  @@map("stock_deductions")
+}
+
+model Product {
+  id              String   @id @default(uuid())
+  title           String
+  titleRu         String?
+  slug            String   @unique
+  description     String?
+  descriptionRu   String?
+  sku             String   @unique
+  price           Float
+  oldPrice        Float?
+  discountPercent Int?
+  stock           Int      @default(0)
+  // JSON-encoded string arrays, e.g. ["S","M","L"] — see product.service.ts
+  // for the serialize/deserialize helpers (SQLite has no native array/Json type).
+  sizes           String   @default("[]")
+  colors          String   @default("[]")
+  images          String   @default("[]")
+  // JSON-encoded [{ color, images: string[] }] — per-color product photos
+  // (admin-uploaded). When a color has no entry here (or an empty images
+  // list), the storefront falls back to the general `images` above.
+  colorImages     String   @default("[]")
+  isActive        Boolean  @default(true)
+  isFeatured      Boolean  @default(false)
+  rating          Float    @default(0)
+  reviewsCount    Int      @default(0)
+  viewCount       Int      @default(0)
+  soldCount       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id])
+
+  // Qaysi magazindan olingan (faqat admin uchun; ixtiyoriy)
+  storeId String?
+  store   Store?  @relation(fields: [storeId], references: [id])
+
+  // Erkaklar/Ayollar/va hokazo — Brend kabi admin o'zi admin paneldan
+  // yaratadigan va tovarga biriktiradigan ixtiyoriy yorliq (Gender modeliga
+  // qarang). Qattiq belgilangan qiymatlar emas — admin xohlagan nomni
+  // qo'shishi mumkin.
+  genderId String?
+  gender   Gender? @relation(fields: [genderId], references: [id])
+
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+  orderItems    OrderItem[]
+  variants      ProductVariant[]
+  reviews       Review[]
+  deductions    StockDeduction[]
+  banners       Banner[]
+  bannerLinks   BannerProduct[]
+  // Promokod faqat shu tovarga amal qilishi uchun (scope = "PRODUCTS").
+  promoLinks    PromoCodeProduct[]
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([storeId])
+  @@index([genderId])
+  @@map("products")
+}
+
+// Brend bilan bir xil g'oya: admin panelda o'zi nom kiritib yaratadi
+// (masalan "Erkaklar", "Ayollar" — yoki xohlagan boshqa nomni), keyin
+// tovar qo'shish/tahrirlash formasida shu ro'yxatdan tanlaydi. Qattiq
+// belgilangan enum emas — to'liq admin nazoratida.
+model Gender {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  // Ruscha nomi — Category'dagi bilan bir xil, ixtiyoriy: admin faqat
+  // o'zbekcha nom kiritsa ham bo'ladi, keyin xohlasa ruscha tarjimasini
+  // qo'shadi. Ruscha sahifalarda shu maydon bo'lsa o'sha ko'rsatiladi,
+  // bo'lmasa `name`ga qaytiladi.
+  nameRu    String?
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@map("genders")
+}
+
+// Buyer reviews (otziv) — a star rating + comment + an optional photo the
+// buyer attaches (e.g. a photo of themselves wearing the item). A user can
+// leave multiple reviews for the same product (e.g. after buying it again,
+// or updating their opinion) — each submission creates a new row rather
+// than overwriting a previous one. Product.rating and Product.reviewsCount
+// are recalculated from this table every time a review is created/deleted
+// (see review.service.ts), so those two fields stay accurate instead of
+// being static/manually-set numbers.
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+// Stock tracked per size+color combination (e.g. "M / Qora" might have 3
+// left while "M / Oq" has 0). `Product.stock` stays as an aggregate total
+// (kept in sync in product.service.ts) so existing dashboard/low-stock
+// code that only reads Product.stock keeps working unchanged; this table
+// is the source of truth for "is this specific size+color available".
+model ProductVariant {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size      String
+  color     String
+  stock     Int      @default(0)
+  // Shu variantning O'Z narxi. Asosan duxi uchun: 50ml va 100ml bitta
+  // mahsulot, lekin narxi har xil. NULL bo'lsa — mahsulotning umumiy
+  // narxi (Product.price) ishlatiladi, shuning uchun narxi o'lchamga
+  // bog'liq bo'lmagan mahsulotlar (kiyim, poyabzal) avvalgidek ishlaydi.
+  price     Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, size, color])
+  @@map("product_variants")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size      String?
+  color     String?
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId, size, color])
+  @@map("cart_items")
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@map("wishlist_items")
+}
+
+model Order {
+  id              String   @id @default(uuid())
+  orderNumber     String   @unique
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  status          String   @default("PENDING")
+  totalAmount     Float
+  deliveryAddress String
+  deliveryCity    String?
+  phone           String
+  note            String?
+  paymentMethod   String   @default("CASH")
+  paymentStatus   String   @default("PENDING")
+  // Buyurtmaga qo'llangan promokod (nusxa sifatida — keyin promokod
+  // o'chirilsa ham buyurtmada qaysi kod ishlatilgani ko'rinib turadi) va
+  // shu koddan kelib chiqqan chegirma summasi. `totalAmount` esa
+  // chegirma AYIRILGANDAN KEYINGI yakuniy summa.
+  promoCode       String?
+  discountAmount  Float?
+  // Set once the buyer opens the Telegram bot's deep link (?start=order_<id>)
+  // — lets the bot recognize which order a later screenshot belongs to, and
+  // lets it message the buyer back once the admin approves/rejects it.
+  telegramChatId  String?
+  // Language the buyer picked on the bot's /start language-select keyboard —
+  // used so later bot messages for this order (receipt received, payment
+  // confirmed/rejected) reply in the same language instead of always Uzbek.
+  telegramLang    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items   OrderItem[]
+  payment Payment?
+
+  @@index([userId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  title     String
+  price     Float
+  size      String?
+  color     String?
+  quantity  Int     @default(1)
+
+  @@map("order_items")
+}
+
+// Singleton row (id is always the literal "singleton") holding site-wide
+// settings that used to be hardcoded in the frontend — currently just the
+// home page hero/banner image, editable from the admin panel instead of a
+// developer having to replace a file in the repo.
+model SiteSettings {
+  id        String   @id @default("singleton")
+  heroImage String?
+  // Contact page details — editable from the admin panel instead of being
+  // hardcoded in the frontend. Null until an admin fills them in for the
+  // first time; the Contact page falls back to the original hardcoded
+  // values in that case so nothing breaks before this is set up.
+  contactAddress  String?
+  contactPhone    String?
+  contactTelegram String?
+  contactEmail    String?
+
+  // Footer'dagi ijtimoiy tarmoq ikonkalari uchun TO'LIQ havola
+  // (masalan "https://t.me/wardrobestore"). contactTelegram'dan farqi:
+  // u "Yordam" sahifasida ko'rsatiladigan @username, bu esa bosiladigan
+  // manzil. Bo'sh qoldirilsa footer o'zining standart havolalarini
+  // ishlatadi (lib/seo/site.ts, BRAND_SOCIAL_LINKS).
+  socialTelegram  String?
+  socialInstagram String?
+  socialTiktok    String?
+
+  // To'lov kartasi — xaridor buyurtmadan keyin pul o'tkazadigan karta.
+  // Avval bu raqam va ism frontend kodida qattiq yozilgan edi
+  // (OrderPaymentPanel.tsx), ya'ni kartani almashtirish uchun saytni
+  // qaytadan deploy qilish kerak bo'lardi. Endi admin panelidan
+  // o'zgartiriladi va o'sha zahoti to'lov ekranida ko'rinadi.
+  paymentCardNumber String?
+  paymentCardHolder String?
+
+  updatedAt       DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider      String
+  transactionId String?
+  amount        Float
+  status        String   @default("PENDING")
+  // JSON-encoded string of the raw webhook payload (SQLite has no Json type).
+  rawPayload    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("payments")
+}
