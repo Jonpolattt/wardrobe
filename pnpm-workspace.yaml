@@ -1,3 +1,10 @@
+# Preserve existing npm dependency scopes during the initial pnpm baseline.
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - apps/*
+  - packages/*
+overrides:
+  express@4.22.1>body-parser: 1.20.4
+  apollo-server-express@3.13.0>body-parser: 1.20.4
+  "@types/express@4.17.14>@types/body-parser": 1.19.2
+  "@types/express@4.17.14>@types/express-serve-static-core": 4.17.31
+  apollo-server-express@3.13.0>express: 4.22.2
