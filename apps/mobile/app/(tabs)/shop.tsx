@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { FlatList, Modal, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { radius, spacing, storefront, typography } from '@wardrobe/theme';
 import { useTranslation } from 'react-i18next';
 import type { ProductFilter, ProductSortValue } from '@wardrobe/types';
 import { mobileApi } from '../../services/api';
@@ -10,9 +11,14 @@ import { localizedName } from '../../features/catalog/model';
 import { Screen, Title, Body, Button, Field, StateView } from '../../components/ui';
 import { Choice } from '../../components/Choice';
 import { ProductCard } from '../../components/ProductCard';
-import { ApiDiagnostics } from '../../components/ApiDiagnostics';
+import { Icon } from '../../components/Icon';
+import { StorefrontList } from '../../components/StorefrontShell';
+import { useTheme } from '../../hooks/useTheme';
+import { swatchColor } from '../../features/catalog/color-swatch';
+import { translateColorName } from '../../features/catalog/color-names';
 
 const SORTS: { value: ProductSortValue; key: string }[] = [
+  { value: 'RANDOM', key: 'random' },
   { value: 'NEWEST', key: 'newest' },
   { value: 'PRICE_ASC', key: 'priceAsc' },
   { value: 'PRICE_DESC', key: 'priceDesc' },
@@ -24,13 +30,18 @@ const one = (value: string | string[] | undefined) => Array.isArray(value) ? val
 export default function ShopScreen() {
   const { t } = useTranslation('catalog');
   const locale = usePreferences((state) => state.locale);
-  const params = useLocalSearchParams<{ categorySlug?: string; ids?: string }>();
+  const { colors } = useTheme();
+  const window = useWindowDimensions();
+  const productWidth = (window.width - storefront.gutter * 2 - storefront.gridGap) / 2;
+  const params = useLocalSearchParams<{ categorySlug?: string; ids?: string; search?: string }>();
   const [search, setSearch] = useState('');
   const [term, setTerm] = useState('');
   const [filters, setFilters] = useState<ProductFilter>({ sort: 'NEWEST' });
   const [draft, setDraft] = useState<ProductFilter>(filters);
   const [open, setOpen] = useState(false);
   const [priceError, setPriceError] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  useEffect(() => { setSearch(one(params.search) ?? ''); }, [params.search]);
 
   useEffect(() => {
     const timer = setTimeout(() => setTerm(search.trim()), 350);
@@ -84,41 +95,37 @@ export default function ShopScreen() {
   }
 
   return (
-    <Screen scroll={false}>
-      <Title>{t('shop')}</Title>
-      <Field
-        accessibilityLabel={t('search')}
-        placeholder={t('search')}
-        value={search}
-        onChangeText={setSearch}
-        returnKeyType="search"
-        clearButtonMode="while-editing"
-      />
-      <View style={styles.resultsHeader}>
-        <View style={styles.flex}>
-          <Body>{t('results', { count: productsQuery.data?.pages[0]?.total ?? 0 })}</Body>
-        </View>
-        <Button
-          title={t('filters')}
-          variant="secondary"
-          onPress={() => {
-            setDraft(filters);
-            setPriceError(false);
-            setOpen(true);
-          }}
-        />
-      </View>
-
-      {__DEV__ && <ApiDiagnostics />}
-      <FlatList
+    <Screen scroll={false} searchValue={search} onSearchChange={setSearch}>
+      <StorefrontList
+        ListHeaderComponent={<View style={styles.pageHeader}>
+          <Title>{t('shop')}</Title>
+          <View style={styles.filterHeader}>
+            <Pressable accessibilityRole="button" onPress={() => { setDraft(filters); setPriceError(false); setOpen(true); }}
+              style={({ pressed }) => [styles.filterTrigger, { opacity: pressed ? 0.6 : 1 }]}>
+              <Body style={styles.filterLabel}>{t('filters')}</Body><Icon name="chevronDown" size={18} color={colors.text} />
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => { setFilters({ sort: 'NEWEST' }); setSearch(''); }} hitSlop={8}>
+              <Body style={[styles.clearLabel, { color: colors.mutedText }]}>{t('reset')}</Body>
+            </Pressable>
+          </View>
+          <View style={styles.resultsHeader}>
+            <Body style={[styles.resultCount, { color: colors.mutedText }]}>{t('results', { count: productsQuery.data?.pages[0]?.total ?? 0 })}</Body>
+            <Pressable accessibilityRole="button" onPress={() => setSortOpen(true)}
+              style={({ pressed }) => [styles.sortControl, { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
+              <Body numberOfLines={1} style={styles.sortLabel}>{t(SORTS.find((sort) => sort.value === filters.sort)?.key ?? 'newest')}</Body>
+              <Icon name="chevronDown" size={14} color={colors.text} />
+            </Pressable>
+          </View>
+        </View>}
         data={products}
         keyExtractor={(item) => item.id}
         numColumns={2}
         showsVerticalScrollIndicator={false}
         columnWrapperStyle={styles.columns}
+        ItemSeparatorComponent={() => <View style={{ height: storefront.gridGap }} />}
         contentContainerStyle={styles.productList}
         renderItem={({ item }) => (
-          <View style={styles.product}><ProductCard product={item} /></View>
+          <View style={{ width: productWidth }}><ProductCard product={item} /></View>
         )}
         refreshControl={(
           <RefreshControl
@@ -158,8 +165,10 @@ export default function ShopScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setOpen(false)}
       >
-        <Screen>
-          <Title>{t('filters')}</Title>
+        <Screen chrome={false}>
+          <View style={styles.sheetHeader}><Title>{t('filters')}</Title>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('close')} hitSlop={8} onPress={() => setOpen(false)}><Icon name="x" size={22} color={colors.text} /></Pressable>
+          </View>
           {options.isPending ? (
             <StateView kind="loading" />
           ) : options.isError ? (
@@ -226,7 +235,8 @@ export default function ShopScreen() {
                 {options.data.productColors.map((color) => (
                   <Choice
                     key={color}
-                    title={color}
+                    title={translateColorName(color, locale)}
+                    swatch={swatchColor(color)}
                     selected={draft.colors?.includes(color)}
                     onPress={() => setDraft({
                       ...draft,
@@ -294,18 +304,33 @@ export default function ShopScreen() {
           <Button title={t('close')} variant="secondary" onPress={() => setOpen(false)} />
         </Screen>
       </Modal>
+      <Modal visible={sortOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSortOpen(false)}>
+        <Screen chrome={false}>
+          <View style={styles.sheetHeader}><Title>{t('sort')}</Title><Pressable accessibilityRole="button" accessibilityLabel={t('close')} onPress={() => setSortOpen(false)} hitSlop={8}><Icon name="x" size={22} color={colors.text} /></Pressable></View>
+          {SORTS.map((sort) => <Pressable key={sort.value} accessibilityRole="button" accessibilityState={{ selected: filters.sort === sort.value }}
+            onPress={() => { setFilters((current) => ({ ...current, sort: sort.value })); setSortOpen(false); }}
+            style={({ pressed }) => [styles.sortOption, { borderBottomColor: colors.border, opacity: pressed ? 0.65 : 1 }]}>
+            <Body>{t(sort.key)}</Body>{filters.sort === sort.value && <Icon name="check" size={20} color={colors.accentText} />}
+          </Pressable>)}
+        </Screen>
+      </Modal>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  resultsHeader: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  columns: { gap: 16 },
-  productList: { gap: 24, paddingVertical: 12, paddingBottom: 28 },
-  product: { flex: 1, maxWidth: '48%' },
-  filterTitle: { fontSize: 18 },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  colorList: { gap: 8 },
-  priceInputs: { flexDirection: 'row', gap: 12 },
+  flex: { flex: 1 }, pageHeader: { paddingTop: spacing.xxxl, marginBottom: spacing.xxl },
+  filterHeader: { marginTop: spacing.xxxl, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  filterTrigger: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  filterLabel: { fontFamily: typography.bold, fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.7 },
+  clearLabel: { fontFamily: typography.semibold, fontSize: 12 },
+  resultsHeader: { flexDirection: 'row', gap: spacing.md, alignItems: 'center', justifyContent: 'space-between', marginTop: 40 },
+  resultCount: { fontSize: 14 }, sortControl: { minHeight: 36, maxWidth: '58%', borderWidth: 1, borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  sortLabel: { fontSize: 12, lineHeight: 18, fontFamily: typography.semibold, flexShrink: 1 },
+  columns: { gap: storefront.gridGap }, productList: {},
+  filterTitle: { fontSize: 12, lineHeight: 18, textTransform: 'uppercase', letterSpacing: 0.7 },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }, colorList: { gap: spacing.sm },
+  priceInputs: { flexDirection: 'row', gap: spacing.md }, sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sortOption: { minHeight: 52, borderBottomWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });

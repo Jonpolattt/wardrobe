@@ -1,5 +1,7 @@
+import { typography } from '@wardrobe/theme';
 import React, { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, View } from 'react-native';
+import { FloatingNavigation } from '../components/FloatingNavigation';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -20,7 +22,7 @@ void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   useEffect(() => { void SplashScreen.hideAsync().catch(() => undefined); }, []);
   const { t } = useTranslation('common');
-  return <SafeAreaProvider><Screen><StateView kind="error" title={t('errorTitle')} message={t('appError')} />
+  return <SafeAreaProvider><Screen chrome={false}><StateView kind="error" title={t('errorTitle')} message={t('appError')} />
     <Button title={t('retry')} onPress={() => { void retry(); }} /></Screen></SafeAreaProvider>;
 }
 export default function RootLayout() {
@@ -54,8 +56,8 @@ export default function RootLayout() {
     <ThemeProvider value={{ ...navigationTheme, colors: { ...navigationTheme.colors, primary: colors.accent,
       background: colors.background, card: colors.header, text: colors.text, border: colors.border } }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerStyle: { backgroundColor: colors.header }, headerTintColor: colors.text,
-        headerTitleStyle: { fontFamily: 'Inter_600SemiBold', fontSize: 17 },
+      <View style={{ flex: 1 }}><Stack screenOptions={{ headerStyle: { backgroundColor: colors.header }, headerTintColor: colors.text,
+        headerTitleStyle: { fontFamily: typography.semibold, fontSize: 17 },
         headerShadowVisible: false, contentStyle: { backgroundColor: colors.background },
         headerBackButtonDisplayMode: 'minimal' }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -74,7 +76,7 @@ export default function RootLayout() {
         <Stack.Screen name="payment-return" options={{ title: t('order') }} />
         <Stack.Screen name="support" options={{ title: t('support') }} />
         <Stack.Screen name="+not-found" options={{ title: t('notFoundTitle') }} />
-      </Stack>
+      </Stack><FloatingNavigation /></View>
     </ThemeProvider>
   </QueryClientProvider></SafeAreaProvider>;
 }

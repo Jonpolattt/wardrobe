@@ -1,5 +1,11 @@
 export const authResources = {
   uz: {
+    back: 'Orqaga', personalInfo: "Shaxsiy ma'lumotlar", profileInfo: "Ma'lumotlarim", profileOrders: 'Buyurtmalar', email: 'Email',
+    adminPanel: 'Admin panel', logoutAccount: 'Accountdan chiqish',
+    logoutConfirmTitle: 'Hisobdan chiqmoqchimisiz?',
+    logoutConfirmBody: "Accountdan chiqsangiz, qayta kirish uchun login va parolingizni kiritishingiz kerak bo'ladi.",
+    cancel: 'Bekor qilish', confirmLogout: 'Ha, chiqish', openLinkError: 'Havolani ochib bo‘lmadi.',
+
     login: 'Kirish', register: "Ro'yxatdan o'tish", profile: 'Profil', support: 'Yordam',
     identifier: 'Telefon raqami yoki email', phone: 'Telefon raqami', password: 'Parol',
     newPassword: 'Yangi parol', confirmPassword: 'Parolni tasdiqlang', firstName: 'Ism',
@@ -43,6 +49,12 @@ export const authResources = {
     verifyFirst: 'Avval telefon raqamingizni SMS orqali tasdiqlang.', registrationExpired: 'Tasdiqlash muddati tugagan. Telefonni qayta tasdiqlang.',
   },
   ru: {
+    back: 'Назад', personalInfo: 'Личная информация', profileInfo: 'Мои данные', profileOrders: 'Заказы', email: 'Email',
+    adminPanel: 'Админ-панель', logoutAccount: 'Выйти из аккаунта',
+    logoutConfirmTitle: 'Выйти из аккаунта?',
+    logoutConfirmBody: 'После выхода вам нужно будет снова войти с логином и паролем.',
+    cancel: 'Отмена', confirmLogout: 'Да, выйти', openLinkError: 'Не удалось открыть ссылку.',
+
     login: 'Войти', register: 'Регистрация', profile: 'Профиль', support: 'Поддержка',
     identifier: 'Телефон или email', phone: 'Телефон', password: 'Пароль', newPassword: 'Новый пароль',
     confirmPassword: 'Повторите пароль', firstName: 'Имя', lastName: 'Фамилия', emailOptional: 'Gmail (необязательно)',

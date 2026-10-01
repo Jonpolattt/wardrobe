@@ -4,13 +4,11 @@ import type { AuthSession, UserProfile, Product, ProductFilter, ProductPage, Cat
 import { tokenStorage } from './secure-session';
 import { CATALOG_DOCUMENTS, catalogDisplayPrice } from '../features/catalog/api-contract';
 import { COMMERCE_DOCUMENTS, cartDisplayItem, type CartResponseItem } from '../features/commerce/api-contract';
-import { operationName, publicEndpoint, publicVariables, recordApiTrace, tracedFetch } from './api-diagnostics';
 export type AuthPayload = AuthSession & { user: UserProfile };
 export type RegisterInput = { phone: string; firstName: string; lastName: string; password: string; email?: string; address?: string };
 export type ResetInput = { token?: string; identifier?: string; code?: string; newPassword: string };
 export type ProfileInput = { firstName?: string; lastName?: string; address?: string };
 export const configuredApiUrl = process.env.EXPO_PUBLIC_GRAPHQL_URL || process.env.EXPO_PUBLIC_API_URL;
-recordApiTrace({ stage: 'configured', endpoint: publicEndpoint(configuredApiUrl), version: 'catalog-v2' });
 export const imageUrl = (value: string | null | undefined) => assetUrl(value, configuredApiUrl);
 let transport: GraphQLClient | undefined;
 function client(): GraphQLClient {
@@ -18,18 +16,12 @@ function client(): GraphQLClient {
     let endpoint: string;
     try { endpoint = apiEndpoint(configuredApiUrl, !__DEV__); }
     catch { throw new ApiClientError('INVALID_ENDPOINT'); }
-    transport = createGraphQLClient({ endpoint, storage: tokenStorage, timeoutMs: 15_000, fetch: __DEV__ ? tracedFetch : undefined });
+    transport = createGraphQLClient({ endpoint, storage: tokenStorage, timeoutMs: 15_000 });
   }
   return transport;
 }
 async function request<T>(query: string, variables?: object, options?: GraphQLRequestOptions): Promise<T> {
-  const operation = operationName(query);
-  recordApiTrace({ stage: 'requested', endpoint: publicEndpoint(configuredApiUrl), operation, variables: publicVariables(operation, variables as Record<string, unknown> | undefined) });
-  try { return await client().request<T, object>(query, variables, options); }
-  catch (error) {
-    recordApiTrace({ stage: 'error', operation, kind: error instanceof ApiClientError ? error.kind : 'UNEXPECTED', httpStatus: error instanceof ApiClientError ? error.status : undefined });
-    throw error;
-  }
+  return client().request<T, object>(query, variables, options);
 }
 const publicOptions = (signal?: AbortSignal): GraphQLRequestOptions => ({ auth: false, signal });
 const guarded = { retryOnUnauthenticated: true };

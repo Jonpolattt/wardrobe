@@ -1,5 +1,10 @@
 export const commerceResources = {
   uz: {
+    orderSummary: 'Buyurtma tafsilotlari', selectedProducts: 'Tanlangan tovarlar',
+    selectItemsToCheckout: 'Buyurtma berish uchun kamida bitta tovarni tanlang',
+    deliveryInfo: "Yetkazib berish ma'lumotlari", applyPromo: 'Qo‘llash',
+    allOrders: 'Barcha buyurtmalar', paidOrders: "To'langan", unpaidOrders: "To'lov qilinmagan",
+
     cart: 'Savatcha', favorites: 'Sevimlilar', checkout: 'Buyurtma berish', orders: 'Buyurtmalarim',
     loading: 'Yuklanmoqda', retry: 'Qayta tekshirish', loadError: 'Ma’lumotlarni yuklab bo‘lmadi',
     requestError: 'Amal bajarilmadi. Ulanishni tekshiring va ma’lumotlarni yangilang.',
@@ -8,7 +13,7 @@ export const commerceResources = {
     ordersEmpty: 'Hali buyurtmalar yo‘q', ordersEmptyBody: 'Birinchi buyurtmangiz shu yerda ko‘rinadi.',
     shop: 'Do‘konga o‘tish', remove: 'O‘chirish', selected: 'Tanlandi', select: 'Tanlash', selectAll: 'Barchasini tanlash',
     selectedCount: '{{count}} ta mahsulot tanlandi', quantity: 'Miqdor', decrease: 'Miqdorni kamaytirish',
-    increase: 'Miqdorni oshirish', subtotal: 'Mahsulotlar summasi', total: 'Jami', unitPrice: 'Bir dona narxi',
+    increase: 'Miqdorni oshirish', subtotal: 'Oraliq jami', total: 'Jami', unitPrice: 'Bir dona narxi',
     unavailable: 'Mahsulot hozir mavjud emas', stockWarning: 'Omborda yetarli mahsulot yo‘q. Miqdorni kamaytiring.',
     stockHint: 'Mavjudlik buyurtma berishda serverda qayta tekshiriladi.',
     address: 'Yetkazib berish manzili', addressPlaceholder: 'Ko‘cha, uy va xonadon', city: 'Shahar',
@@ -37,6 +42,11 @@ export const commerceResources = {
     cancelledHint: 'Bu buyurtma bekor qilingan.', profileSaveError: 'Manzilni saqlab bo‘lmadi. Buyurtma hali yuborilmadi.',
   },
   ru: {
+    orderSummary: 'Детали заказа', selectedProducts: 'Выбрано товаров',
+    selectItemsToCheckout: 'Выберите хотя бы один товар для оформления заказа',
+    deliveryInfo: 'Информация о доставке', applyPromo: 'Применить',
+    allOrders: 'Все заказы', paidOrders: 'Оплаченные', unpaidOrders: 'Неоплаченные',
+
     cart: 'Корзина', favorites: 'Избранное', checkout: 'Оформление заказа', orders: 'Мои заказы',
     loading: 'Загрузка', retry: 'Проверить снова', loadError: 'Не удалось загрузить данные',
     requestError: 'Действие не выполнено. Проверьте подключение и обновите данные.',
@@ -45,7 +55,7 @@ export const commerceResources = {
     ordersEmpty: 'Заказов пока нет', ordersEmptyBody: 'Ваш первый заказ появится здесь.',
     shop: 'Перейти в магазин', remove: 'Удалить', selected: 'Выбрано', select: 'Выбрать', selectAll: 'Выбрать все',
     selectedCount: 'Выбрано товаров: {{count}}', quantity: 'Количество', decrease: 'Уменьшить количество',
-    increase: 'Увеличить количество', subtotal: 'Стоимость товаров', total: 'Итого', unitPrice: 'Цена за единицу',
+    increase: 'Увеличить количество', subtotal: 'Промежуточный итог', total: 'Итого', unitPrice: 'Цена за единицу',
     unavailable: 'Товар сейчас недоступен', stockWarning: 'Недостаточно товара на складе. Уменьшите количество.',
     stockHint: 'Доступность повторно проверяется сервером при оформлении.',
     address: 'Адрес доставки', addressPlaceholder: 'Улица, дом и квартира', city: 'Город',

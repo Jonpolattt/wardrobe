@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { isName, isPassword, isRegistrationEmail, isUzPhone, normalizeUzPhone } from '@wardrobe/validation';
-import { BodyText, Button, Card, Field, Screen, Title } from '../../components/ui';
+import { BodyText, Button, TextAction, FormCard, FormTitle, Field, Screen, Title } from '../../components/ui';
 import { mobileApi } from '../../services/api';
 import { useAuth } from '../../store/auth';
 import { authError, requireAuthSuccess, useAuthRequestGuard, useRemainingSeconds } from '../../features/auth/forms';
@@ -37,8 +37,7 @@ function PhoneStep({ expired }: { expired: boolean }) {
     } catch (error) { if (request.isFocused()) setIssue(authError(error, t, 'phoneSendFailed')); }
   });
   return (
-    <Screen><Title>{t('register')}</Title><BodyText>{t(expired ? 'registrationExpired' : 'verifyFirst')}</BodyText>
-      <Card><Controller control={control} name="phone" rules={{ validate: (value) => isUzPhone(value) || t('invalidPhone') }}
+    <Screen chrome={false}><FormCard><FormTitle>{t('register')}</FormTitle><BodyText>{t(expired ? 'registrationExpired' : 'verifyFirst')}</BodyText><Controller control={control} name="phone" rules={{ validate: (value) => isUzPhone(value) || t('invalidPhone') }}
         render={({ field }) => <Field label={t('phone')} value={field.value} onChangeText={field.onChange}
           onBlur={field.onBlur} keyboardType="phone-pad" autoComplete="tel" error={errors.phone?.message} />} />
         {issue ? <BodyText accessibilityRole="alert">{issue}</BodyText> : null}
@@ -46,7 +45,7 @@ function PhoneStep({ expired }: { expired: boolean }) {
           onPress={submit} loading={isSubmitting} disabled={samePhone && cooldown > 0} />
         {pending && samePhone && !pending.verifiedAt ? <Button title={t('continue')} variant="secondary"
           onPress={() => router.push('/auth/verify')} /> : null}
-      </Card><Button title={t('alreadyAccount')} variant="secondary" onPress={() => router.push('/auth/login')} />
+      </FormCard><TextAction title={t('alreadyAccount')} onPress={() => router.push('/auth/login')} />
     </Screen>
   );
 }
@@ -76,7 +75,7 @@ function PersonalInfo({ phone }: { phone: string }) {
     } catch (error) { if (request.isFocused()) setIssue(authError(error, t, 'registrationFailed')); }
   });
   return (
-    <Screen><Title>{t('completeRegistration')}</Title><BodyText>{t('phoneVerified')}: {phone}</BodyText><Card>
+    <Screen chrome={false}><FormCard><FormTitle>{t('completeRegistration')}</FormTitle><BodyText>{t('phoneVerified')}: {phone}</BodyText>
       <Controller control={control} name="firstName" rules={{ validate: (value) => isName(value) || t('invalidName') }}
         render={({ field }) => <Field label={t('firstName')} value={field.value} onChangeText={field.onChange}
           onBlur={field.onBlur} autoComplete="given-name" error={errors.firstName?.message} />} />
@@ -96,7 +95,7 @@ function PersonalInfo({ phone }: { phone: string }) {
           onBlur={field.onBlur} secureTextEntry autoCapitalize="none" autoCorrect={false} error={errors.confirmation?.message} />} />
       {issue ? <BodyText accessibilityRole="alert">{issue}</BodyText> : null}
       <BodyText>{t('termsHint')}</BodyText><Button title={t('createAccount')} onPress={submit} loading={isSubmitting} />
-    </Card><Button title={t('changePhone')} variant="secondary" disabled={isSubmitting}
+    </FormCard><TextAction title={t('changePhone')} disabled={isSubmitting}
       onPress={() => useAuth.getState().clearPending()} />
     </Screen>
   );

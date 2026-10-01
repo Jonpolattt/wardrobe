@@ -126,3 +126,27 @@ export const themeColors = {
 
 export type ThemeMode = keyof typeof themeColors;
 export type ThemeColors = (typeof themeColors)[ThemeMode];
+
+// Responsive-web measurements shared by native presentation only.
+export const storefront = {
+  gutter: 16, gridGap: 20, topHeader: 64, searchRow: 60, searchControl: 44,
+  navHeight: 64, navGap: 12, navMaxWidth: 448, pageTop: 40,
+  productRadius: 12, categoryRadius: 24, categoryHeight: 208,
+} as const;
+export const typography = {
+  regular: 'Inter_400Regular', medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold', bold: 'Inter_700Bold',
+  wordmark: 'PlayfairDisplay_600SemiBold',
+  pageTitle: 30, sectionTitle: 30, body: 14, label: 12,
+} as const;
+export const motion = {
+  fast: 180, normal: 300, reveal: 420,
+  pressSpring: { stiffness: 340, damping: 28, mass: 0.65 },
+  tabSpring: { stiffness: 280, damping: 28, mass: 0.8 },
+} as const;
+export const glassColors = {
+  light: { surface: 'rgba(255,255,255,0.76)', capsule: 'rgba(255,255,255,0.82)',
+    highlight: 'rgba(255,255,255,0.9)', border: 'rgba(17,24,39,0.1)', shadow: webColors.ink[950] },
+  dark: { surface: 'rgba(13,24,38,0.78)', capsule: 'rgba(248,250,252,0.09)',
+    highlight: 'rgba(248,250,252,0.14)', border: 'rgba(248,250,252,0.1)', shadow: webColors.ink[950] },
+} as const;

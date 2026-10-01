@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { isPassword, OTP_REGEX } from '@wardrobe/validation';
-import { BodyText, Button, Card, Field, Screen, StateView, Title } from '../../components/ui';
+import { BodyText, Button, TextAction, FormCard, FormTitle, Field, Screen, StateView, Title } from '../../components/ui';
 import { mobileApi } from '../../services/api';
 import { useAuth } from '../../store/auth';
 import { authError, useAuthRequestGuard, useRemainingSeconds } from '../../features/auth/forms';
@@ -58,13 +58,12 @@ export default function ResetPasswordScreen() {
     } catch (error) { if (request.isFocused()) setIssue(authError(error, t)); }
     finally { setResending(false); }
   }
-  if (invalidTokenParam) return <Screen><StateView kind="error" title={t('resetInvalid')} />
+  if (invalidTokenParam) return <Screen chrome={false}><StateView kind="error" title={t('resetInvalid')} />
     <Button title={t('requestReset')} onPress={() => router.replace('/auth/forgot-password')} /></Screen>;
-  if (!token && !phoneRecovery) return <Screen><StateView kind="empty" title={t('resetMissing')} />
+  if (!token && !phoneRecovery) return <Screen chrome={false}><StateView kind="empty" title={t('resetMissing')} />
     <Button title={t('requestReset')} onPress={() => router.replace('/auth/forgot-password')} /></Screen>;
   return (
-    <Screen><Title>{t('resetTitle')}</Title>
-      {phoneRecovery ? <BodyText>{t('resetSentPhone')}</BodyText> : null}<Card>
+    <Screen chrome={false}><FormCard><FormTitle>{t('resetTitle')}</FormTitle>{phoneRecovery ? <BodyText>{t('resetSentPhone')}</BodyText> : null}
         {phoneRecovery ? <Controller control={control} name="code"
           rules={{ validate: (value) => OTP_REGEX.test(value) || t('invalidCode') }}
           render={({ field }) => <Field label={t('code')} value={field.value} onChangeText={field.onChange}
@@ -84,7 +83,7 @@ export default function ResetPasswordScreen() {
           disabled={resending || (!!phoneRecovery && expiry === 0)} />
         {phoneRecovery ? <Button title={cooldown > 0 ? t('resendIn', { seconds: cooldown }) : t('resend')}
           onPress={resend} variant="secondary" loading={resending} disabled={cooldown > 0 || isSubmitting} /> : null}
-      </Card><Button title={t('backToLogin')} variant="secondary" onPress={() => router.replace('/auth/login')} />
+      </FormCard><TextAction title={t('backToLogin')} onPress={() => router.replace('/auth/login')} />
     </Screen>
   );
 }

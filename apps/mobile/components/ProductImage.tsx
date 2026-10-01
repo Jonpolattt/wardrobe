@@ -4,6 +4,7 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { imageUrl } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { Body, Skeleton } from './ui';
+import { radius, typography } from '@wardrobe/theme';
 
 interface ProductImageProps {
   src?: string | null;
@@ -42,7 +43,7 @@ export function ProductImage({
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             cachePolicy="memory-disk"
-            transition={150}
+            transition={300}
             accessibilityLabel={label}
             onLoadEnd={() => setLoaded(true)}
             onError={() => setFailed(true)}
@@ -63,7 +64,7 @@ export function ProductImage({
 }
 
 const styles = StyleSheet.create({
-  container: { overflow: 'hidden', borderRadius: 16 },
+  container: { overflow: 'hidden', borderRadius: radius.card },
   fallback: { alignItems: 'center', justifyContent: 'center' },
-  fallbackMark: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 40 },
+  fallbackMark: { fontFamily: typography.wordmark, fontSize: 40 },
 });

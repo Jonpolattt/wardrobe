@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { isIdentifier, isPassword } from '@wardrobe/validation';
-import { BodyText, Button, Card, Field, Screen, Title } from '../../components/ui';
+import { BodyText, Button, TextAction, FormCard, FormTitle, Field, Screen, Title } from '../../components/ui';
 import { mobileApi } from '../../services/api';
 import { useAuth } from '../../store/auth';
 import { authError, normalizeIdentifier, signedInDestination, useAuthRequestGuard } from '../../features/auth/forms';
@@ -31,7 +31,7 @@ export default function LoginScreen() {
     } catch (error) { if (request.isFocused()) setIssue(authError(error, t, 'invalidCredentials')); }
   });
   return (
-    <Screen><Title>{t('login')}</Title><Card>
+    <Screen chrome={false}><FormCard><FormTitle>{t('login')}</FormTitle>
       <Controller control={control} name="identifier" rules={{ validate: (value) => isIdentifier(value) || t('invalidIdentifier') }}
         render={({ field }) => <Field label={t('identifier')} value={field.value} onChangeText={field.onChange}
           onBlur={field.onBlur} autoCapitalize="none" autoCorrect={false} autoComplete="username"
@@ -42,9 +42,9 @@ export default function LoginScreen() {
           autoComplete="current-password" error={errors.password?.message} />} />
       {issue ? <BodyText accessibilityRole="alert">{issue}</BodyText> : null}
       <Button title={t('login')} onPress={submit} loading={isSubmitting} />
-    </Card>
-      <Button title={t('forgotPassword')} variant="secondary" onPress={() => router.push('/auth/forgot-password')} />
-      <Button title={t('noAccount')} variant="secondary" onPress={() => router.push('/auth/register')} />
+    </FormCard>
+      <TextAction title={t('forgotPassword')} onPress={() => router.push('/auth/forgot-password')} />
+      <TextAction title={t('noAccount')} onPress={() => router.push('/auth/register')} />
     </Screen>
   );
 }

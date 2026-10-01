@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { Image } from 'expo-image';
+import { spacing, typography } from '@wardrobe/theme';
+import { Icon } from '../../components/Icon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -10,7 +13,7 @@ import { isAddress, isUzPhone, normalizeUzPhone } from '@wardrobe/validation';
 import { RequireAuth } from '../../components/RequireAuth';
 import { Body, Button, Card, Field, Screen, Skeleton, StateView, Title } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
-import { mobileApi } from '../../services/api';
+import { imageUrl, mobileApi } from '../../services/api';
 import { queryClient } from '../../services/query-client';
 import { useAuth } from '../../store/auth';
 import { productTitle, selectedStock } from '../../features/catalog/model';
@@ -116,23 +119,49 @@ function CheckoutContent() {
   if (items.length === 0) return <Screen><StateView kind="empty" title={t('cartEmpty')} message={t('noSelectedItems')} /><Button title={t('cart')} onPress={() => router.replace('/(tabs)/cart')} /></Screen>;
   return <Screen>
     <Title>{t('checkout')}</Title>
-    <Card><View style={{ gap: 12 }}>{items.map(item => <View key={item.id} style={{ gap: 4 }}><Body style={{ fontWeight: '600' }}>{item.product ? productTitle(item.product, locale) : t('unavailable')}</Body><Body style={{ color: colors.mutedText }}>{[item.size, item.color].filter(Boolean).join(' · ')} · {item.quantity}</Body><Body>{formatPrice(item.unitPrice * item.quantity, locale)}</Body></View>)}<Body style={{ fontWeight: '600' }}>{t('subtotal')}: {formatPrice(total, locale)}</Body></View></Card>
     {invalidStock && <Body style={{ color: colors.danger }}>{t('stockWarning')}</Body>}
-    <Controller control={form.control} name="address" rules={{ validate: value => isAddress(value) || t('invalidAddress') }} render={({ field, fieldState }) => <Field label={t('address')} placeholder={t('addressPlaceholder')} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} editable={!locked} autoComplete="street-address" multiline />} />
-    <Controller control={form.control} name="city" render={({ field }) => <Field label={t('city')} value={field.value} onChangeText={field.onChange} editable={!locked} textContentType="addressCity" />} />
-    <Controller control={form.control} name="phone" rules={{ validate: value => isUzPhone(value) || t('invalidPhone') }} render={({ field, fieldState }) => <Field label={t('phone')} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} editable={!locked} keyboardType="phone-pad" autoComplete="tel" />} />
-    <Controller control={form.control} name="note" render={({ field }) => <Field label={t('note')} placeholder={t('notePlaceholder')} value={field.value} onChangeText={field.onChange} editable={!locked} multiline />} />
-    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: saveAddress }} disabled={locked} onPress={() => setSaveAddress(value => !value)} style={{ paddingVertical: 12 }}><Body>{saveAddress ? '☑ ' : '☐ '}{t('saveAddress')}</Body><Body style={{ color: colors.mutedText }}>{t('savedAddressHint')}</Body></Pressable>
-    <Field label={t('promo')} placeholder={t('promoPlaceholder')} value={promoCode} onChangeText={value => { setPromoCode(value); promo.reset(); }} editable={!locked && !promo.isPending} autoCapitalize="characters" />
-    <Button title={t('checkPromo')} variant="secondary" loading={promo.isPending} disabled={locked || !promoCode.trim() || !items.length} onPress={() => promo.mutate({ code: promoCode.trim(), phone, ids: items.map(item => item.id), signature: selectedSignature })} />
-    {promo.isError && <Body style={{ color: colors.danger }}>{t('requestError')}</Body>}
-    {promoPreview && <Body style={{ color: promoPreview.valid ? colors.success : colors.danger }}>{t(promoPreview.valid ? 'promoValid' : 'promoInvalid')}</Body>}
-    {promoPreview?.valid && <Body>{t('discount')}: {formatPrice(promoPreview.discount, locale)}</Body>}
-    <Title>{t('total')}: {formatPrice(promoPreview?.valid ? promoPreview.total : total, locale)}</Title>
-    <Body style={{ color: colors.mutedText }}>{t('estimateHint')}</Body>
-    <Card><View style={{ gap: 8 }}><Body style={{ fontWeight: '600' }}>{t('manualPayment')}</Body><Body>{t('manualPaymentHint')}</Body></View></Card>
+    <Card style={{ padding: spacing.xxl, gap: spacing.xl }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}><Icon name="truck" size={18} color={colors.mutedText} /><Body style={{ fontFamily: typography.bold, fontSize: 14, letterSpacing: 0.5 }}>{t('deliveryInfo').toLocaleUpperCase(locale)}</Body></View>
+      <Controller control={form.control} name="address" rules={{ validate: value => isAddress(value) || t('invalidAddress') }} render={({ field, fieldState }) => <Field label={t('address')} placeholder={t('addressPlaceholder')} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} editable={!locked} autoComplete="street-address" multiline />} />
+      <Controller control={form.control} name="city" render={({ field }) => <Field label={t('city')} value={field.value} onChangeText={field.onChange} editable={!locked} textContentType="addressCity" />} />
+      <Controller control={form.control} name="phone" rules={{ validate: value => isUzPhone(value) || t('invalidPhone') }} render={({ field, fieldState }) => <Field label={t('phone')} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} editable={!locked} keyboardType="phone-pad" autoComplete="tel" />} />
+      <Controller control={form.control} name="note" render={({ field }) => <Field label={t('note')} placeholder={t('notePlaceholder')} value={field.value} onChangeText={field.onChange} editable={!locked} multiline />} />
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: saveAddress }} disabled={locked} onPress={() => setSaveAddress(value => !value)}
+        style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingVertical: spacing.sm }}>
+        <View style={{ width: 20, height: 20, borderWidth: 1, borderColor: saveAddress ? colors.accent : colors.border,
+          backgroundColor: saveAddress ? colors.accent : colors.input, borderRadius: 4, justifyContent: 'center', alignItems: 'center' }}>
+          {saveAddress && <Icon name="check" size={14} color={colors.onAccent} />}
+        </View><View style={{ flex: 1, gap: spacing.xs }}><Body>{t('saveAddress')}</Body><Body style={{ color: colors.mutedText, fontSize: 12 }}>{t('savedAddressHint')}</Body></View>
+      </Pressable>
+    </Card>
     {profileFailed && <Body style={{ color: colors.danger }}>{t('profileSaveError')}</Body>}
-    <Button title={t('placeOrder')} loading={create.isPending} disabled={locked || invalidStock || cart.isFetching || promo.isPending} onPress={() => void form.handleSubmit(values => create.mutate(values))()} />
+    <Card style={{ padding: spacing.xxl, gap: spacing.lg }}>
+      <Body style={{ fontFamily: typography.bold, fontSize: 14, letterSpacing: 0.5 }}>{t('orderSummary').toLocaleUpperCase(locale)}</Body>
+      {items.map(item => <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+        <Image source={imageUrl(item.product?.images[0])} contentFit="cover" style={{ width: 56, height: 64, borderRadius: 8, backgroundColor: colors.input }} />
+        <View style={{ flex: 1, minWidth: 0, gap: spacing.xs }}><Body numberOfLines={2} style={{ fontFamily: typography.semibold }}>{item.product ? productTitle(item.product, locale) : t('unavailable')}</Body>
+          <Body style={{ color: colors.mutedText, fontSize: 12 }}>{[item.size, item.color].filter(Boolean).join(' · ')} · {item.quantity}</Body></View>
+        <Body style={{ fontSize: 12, fontFamily: typography.semibold, textAlign: 'right', maxWidth: 90 }}>{formatPrice(item.unitPrice * item.quantity, locale)}</Body>
+      </View>)}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}><Body>{t('subtotal')}</Body><Body>{formatPrice(total, locale)}</Body></View>
+      <View style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: spacing.lg, gap: spacing.sm }}>
+        <Body style={{ fontSize: 12, fontFamily: typography.semibold, color: colors.mutedText }}>{t('promo')}</Body>
+        <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' }}>
+          <View style={{ flex: 1 }}><Field accessibilityLabel={t('promo')} placeholder={t('promoPlaceholder')} value={promoCode} onChangeText={value => { setPromoCode(value); promo.reset(); }} editable={!locked && !promo.isPending} autoCapitalize="characters" /></View>
+          <Button title={t('applyPromo')} variant="secondary" loading={promo.isPending} disabled={locked || !promoCode.trim() || !items.length}
+            onPress={() => promo.mutate({ code: promoCode.trim(), phone, ids: items.map(item => item.id), signature: selectedSignature })} style={{ paddingHorizontal: spacing.md }} />
+        </View>
+        {promo.isError && <Body style={{ color: colors.danger }}>{t('requestError')}</Body>}
+        {promoPreview && <Body style={{ color: promoPreview.valid ? colors.success : colors.danger }}>{t(promoPreview.valid ? 'promoValid' : 'promoInvalid')}</Body>}
+        {promoPreview?.valid && <Body>{t('discount')}: {formatPrice(promoPreview.discount, locale)}</Body>}
+      </View>
+      <View style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: spacing.lg, flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: spacing.sm }}>
+        <Body style={{ fontFamily: typography.bold, fontSize: 16 }}>{t('total')}</Body><Body style={{ fontFamily: typography.bold, fontSize: 16 }}>{formatPrice(promoPreview?.valid ? promoPreview.total : total, locale)}</Body>
+      </View>
+      <Body style={{ color: colors.mutedText, fontSize: 12 }}>{t('estimateHint')}</Body>
+      <Button title={t('placeOrder')} loading={create.isPending} disabled={locked || invalidStock || cart.isFetching || promo.isPending} onPress={() => void form.handleSubmit(values => create.mutate(values))()} />
+      <View style={{ gap: spacing.sm }}><Body style={{ fontFamily: typography.semibold }}>{t('manualPayment')}</Body><Body style={{ color: colors.mutedText, fontSize: 12 }}>{t('manualPaymentHint')}</Body></View>
+    </Card>
   </Screen>;
 }
 export default function CheckoutScreen() { return <RequireAuth><CheckoutContent /></RequireAuth>; }
